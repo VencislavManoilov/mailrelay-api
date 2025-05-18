@@ -6,12 +6,25 @@ import (
 
     "github.com/gofiber/fiber/v3"
 	"github.com/joho/godotenv"
+	"github.com/go-playground/validator/v10"
 )
 
-var app *fiber.App
+var (
+	app	   *fiber.App
+	PORT	string
+	API_KEY	string
+	validate = validator.New()
+)
 
-var PORT string
-var API_KEY string
+type EmailRequest struct {
+	ApiKey string `json:"apiKey" form:"apiKey" validate:"required"`
+	Username   string `json:"username" form:"username" validate:"required"`
+	To	   string `json:"to" form:"to" validate:"required,email"`
+	Subject string `json:"subject" form:"subject" validate:"required"`
+	HTML   string `json:"html" form:"html" validate:"required"`
+	Text   string `json:"text" form:"text" validate:"required"`
+	Author string `json:"author" form:"author" validate:"required"`
+}
 
 func init() {
 
@@ -38,43 +51,33 @@ func main() {
     })
 
 	app.Post("/send", func(c fiber.Ctx) error {
-		c.Accepts("application/json")
-		c.Accepts("application/x-www-form-urlencoded")
-		
-		// Create a new email request struct
 		emailReq := new(EmailRequest)
-		
-		// Parse body into the struct
+
 		if err := c.Bind().Body(emailReq); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Failed to parse request body",
+				"error": "Invalid request format",
 			})
 		}
-		
-		// Now you can access the fields
-		apiKey := emailReq.APIKey
-		title := emailReq.Title
-		html := emailReq.HTML
-		text := emailReq.Text
-		author := emailReq.Author
+
+		if err := validate.Struct(emailReq); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Validation failed",
+				"fields": err.Error(),
+			})
+		}
+
+		if emailReq.ApiKey != API_KEY {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Invalid API key",
+			})
+		}
 
 		return c.JSON(fiber.Map{
-			"apiKey": apiKey,
-			"title":  title,
-			"html":   html,
-			"text":   text,
-			"author": author,
-		});
+			"message": "Email received",
+			"data":    emailReq,
+		})
 	})
 
     // Start the server on port 3000
     log.Fatal(app.Listen(":" + PORT))
-}
-
-type EmailRequest struct {
-    APIKey string `json:"apiKey" form:"apiKey"`
-    Title  string `json:"title" form:"title"`
-    HTML   string `json:"html" form:"html"`
-    Text   string `json:"text" form:"text"`
-    Author string `json:"author" form:"author"`
 }
