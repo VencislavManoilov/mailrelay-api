@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mailrelay-api:
+    container_name: mailrelay-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+# API Key Configuration
+# This API key is used for securing the mail sending functionality.
+# Any request to the /send endpoint must include this API key in the request body
+# as the "apiKey" variable. Requests without a matching API key will be rejected.
+# This ensures that only authorized clients can use the mail sending service.
+# You can use any string as the API key, but it's recommended to use a long and complex key for security.
+      - API_KEY=your_api_key_here
+      - MAIL_HOST=smtp.example.com
+      - MAIL_DOMAIN=example.com
+      - MAIL_PORT=587
+      - MAIL_USER=user@example.com
+      - MAIL_PASS=your_password_here
+      - MAIL_SSL=false
+    restart: unless-stopped
