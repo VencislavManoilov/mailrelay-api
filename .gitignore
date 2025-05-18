@@ -1,3 +1,4 @@
 .env
 mailrelay.exe
 tmp
+docker-compose.yml
